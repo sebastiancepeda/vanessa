@@ -1,8 +1,10 @@
 import numpy as np
 import math
 
+from typing import List
 
-def image2tiles(im, h, w):
+
+def image2tiles(im: np.ndarray, h: int, w: int):
     """Transforms an image to a list of tiles
 
     Parameters
@@ -42,12 +44,12 @@ def image2tiles(im, h, w):
     return tiles
 
 
-def tiles2images(tiles, im_shape, h, w):
+def tiles2images(tiles: List[np.ndarray], im_shape: tuple, h: int, w: int):
     """Transforms a list of tiles to an image
 
     Parameters
     ----------
-    tiles : list
+    tiles : List[np.ndarray]
         List of tiles
     im_shape : tuple
         Shape of the image
@@ -77,13 +79,32 @@ def tiles2images(tiles, im_shape, h, w):
     return im
 
 
-def get_labels_tiles(tiles):
+def get_color_map():
+    """
+    Gets color mapping
+    Returns
+    -------
+    dict
+        color mapping
+    """
+    color_map = {
+        0: (255, 255, 255),  # White
+        1: (0, 0, 255),  # Blue
+        2: (0, 255, 255),  # Turquoise
+        3: (0, 255, 0),  # Green
+        4: (255, 255, 0),  # Yellow
+        # 5: (255, 0, 0),  # Red
+    }
+    return color_map
+
+
+def get_labels_tiles(tiles: List[np.ndarray]):
     """Transforms a list of tiles of labels to a one-hot encoded array of labels, based on the minimum distance in the
     color space to a set of colors (white, blue, etc.)
 
     Parameters
     ----------
-    tiles : list
+    tiles : List[np.ndarray]
         List of tiles
 
     Returns
@@ -94,16 +115,9 @@ def get_labels_tiles(tiles):
     output_channels = 5
     tiles_len = len(tiles)
     result = np.zeros((tiles_len, tiles[0].shape[0], tiles[0].shape[1], output_channels))
-    colours = {
-        0: (255, 255, 255),  # White
-        1: (0, 0, 255),  # Blue
-        2: (0, 255, 255),  # Turquoise
-        3: (0, 255, 0),  # Green
-        4: (255, 255, 0),  # Yellow
-        # 5: (255, 0, 0),  # Red
-    }
+    color_map = get_color_map()
     for i, tile in enumerate(tiles):
-        for colour_index, colour in colours.items():
+        for colour_index, colour in color_map.items():
             r_channel = np.abs(tile[:, :, 0] - colour[2])
             g_channel = np.abs(tile[:, :, 1] - colour[1])
             b_channel = np.abs(tile[:, :, 2] - colour[0])
@@ -111,7 +125,36 @@ def get_labels_tiles(tiles):
             result[i, :, :, colour_index] = color_distance
     result = np.argmin(result, axis=-1)  # Min color distance
     result2 = np.zeros((tiles_len, tiles[0].shape[0], tiles[0].shape[1], output_channels))
-    for colour_index, colour in colours.items():
+    for colour_index, colour in color_map.items():
         mat = result[:, :, :] == colour_index
         result2[:, :, :, colour_index] = mat
     return result2
+
+
+def predictions2image(y_pred: np.ndarray, im_shape: tuple, h: int, w: int):
+    """
+    Transforms an numpy array of predictions into an image
+
+    Parameters
+    ----------
+    y_pred : Numpy array of predictions
+    im_shape : Shape of the output image
+    h : Height of the image
+    w : Width of the image
+
+    Returns
+    -------
+    np.ndarray:
+        Output image
+    """
+    y_pred2 = np.zeros((y_pred.shape[0], y_pred.shape[1], y_pred.shape[2], 3))
+    color_map = get_color_map()
+    for colour_index, colour in color_map.items():
+        sub_mat = y_pred == colour_index
+        r, g, b = colour
+        y_pred2[sub_mat, 0] = b
+        y_pred2[sub_mat, 1] = g
+        y_pred2[sub_mat, 2] = r
+    y_pred2 = [y_pred2[i] for i in range(y_pred2.shape[0])]
+    y_pred2 = tiles2images(y_pred2, im_shape, h, w)
+    return y_pred2
