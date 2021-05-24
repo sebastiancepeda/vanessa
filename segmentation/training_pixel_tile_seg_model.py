@@ -2,9 +2,8 @@ import pandas as pd
 from loguru import logger
 import cv2
 import numpy as np
-from tensorflow.keras.losses import CategoricalCrossentropy
 
-from cv.image_processing import image2tiles, get_labels_tiles, predictions2image, tiles2images
+from cv.image_processing import image2tiles, get_labels_tiles, predictions2image
 from cv.tf_utils import train_model
 from segmentation.pixel_tile_segmentation_model import get_model_definition
 
@@ -98,6 +97,10 @@ def train_pixel_tile_seg_model(params):
     tile_model = train_model(
         x_train_tile, y_train_tile, x_test_tile, y_test_tile, tile_model, params['tile_model_params'], logger)
     features_model.trainable = False
+    features_model.compile(
+        optimizer='adam',
+        loss="mse",
+        metrics=['mae'])
     image_file_train_1 = train_data_1.image_file
     label_file_train_1 = train_data_1.label_file
     image_file_test = test_data.image_file

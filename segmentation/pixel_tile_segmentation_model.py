@@ -46,7 +46,6 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
         5: dim,
     }
     pre_processed = Lambda(lambda x: x / 255)(inputs)
-    # pre_processed = BatchNormalization()(pre_processed)
     # Down
     c1 = Conv2D(outs[1], **kwargs_conv2d)(pre_processed)
     c1 = Conv2D(outs[1], **kwargs_conv2d)(c1)
@@ -74,10 +73,7 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
     features = Conv2D(outs[1], **kwargs_conv2d)(u1)
     outputs_tile = Conv2D(outs[2], **kwargs_conv2d)(features)
     outputs_tile = Conv2D(outs[2], **kwargs_conv2d)(outputs_tile)
-    # outputs_tile = Flatten()(outputs_tile)
     outputs_tile = GlobalAveragePooling2D()(outputs_tile)
-    # outputs_tile = GlobalMaxPool2D()(outputs_tile)
-    # outputs_tile = BatchNormalization()(outputs_tile)
     outputs_tile = Dense(dim, activation='relu')(outputs_tile)
     outputs_tile = Dense(out_channels, activation='sigmoid')(outputs_tile)
     outputs_pixel = Conv2D(out_channels, (1, 1), activation='sigmoid')(features)

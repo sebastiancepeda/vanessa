@@ -4,10 +4,9 @@
 """
 
 from tensorflow.keras import Model
-from tensorflow.keras.losses import CategoricalCrossentropy
 from tensorflow.keras.layers import (
     Conv2D, Conv2DTranspose, Lambda, Input,
-    MaxPooling2D, concatenate, BatchNormalization
+    MaxPooling2D, concatenate
 )
 
 

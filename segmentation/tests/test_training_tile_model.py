@@ -28,8 +28,8 @@ def test_training_pixel_tile_model():
     y = cv2.imread(y)
     assert y is not None
     y = image2tiles(y, h, w)
-    y_pixel = get_labels_tiles(y)
-    y_tile = y_pixel.any(axis=(1, 2)).astype(np.float64)
+    y = get_labels_tiles(y)
+    y = y.any(axis=(1, 2)).astype(np.float64)
     assert not np.array_equal(y, np.array((1, 1, 0, 0, 1)).astype(np.float64))
     model_folder = "./tmp/tile_model/"
     model_file = f"{model_folder}/tile_model.save"
@@ -45,38 +45,18 @@ def test_training_pixel_tile_model():
         optimizer='adam',
         loss="mse",
         metrics=['mae'])
-    model_weights_tile_before = tile_model.get_weights()
-    logger.info(f"y_tile: {y_tile}")
+    model_weights_list_before = tile_model.get_weights()
+    logger.info(f"y: {y}")
     y_pred = tile_model.predict(x)
-    e1 = np.abs(y_tile - y_pred).mean()
+    e1 = np.abs(y - y_pred).mean()
     logger.info(f"e1: {e1}")
-    tile_model = train_model(x, y_tile, x, y_tile, tile_model, params, logger)
-    features_model.trainable = False
-    features_model.compile(
-        optimizer='adam',
-        loss="mse",
-        metrics=['mae'])
-    pixel_model.compile(
-        optimizer='adam',
-        loss="mse",
-        metrics=['mae'])
+    tile_model = train_model(x, y, x, y, tile_model, params, logger)
     y_pred = tile_model.predict(x)
-    e2 = np.abs(y_tile - y_pred).mean()
+    e2 = np.abs(y - y_pred).mean()
     logger.info(f"e2: {e2}")
     assert e2 < e1
-    model_weights_tile_after = tile_model.get_weights()
+    model_weights_list_after = tile_model.get_weights()
     equals = []
-    for weights_before, weights_after in zip(model_weights_tile_before, model_weights_tile_after):
+    for weights_before, weights_after in zip(model_weights_list_before, model_weights_list_after):
         equals.append(np.array_equal(weights_before, weights_after))
     assert not all(equals)
-    model_weights_pixel_before = pixel_model.get_weights()
-    pixel_model = train_model(x, y_pixel, x, y_pixel, pixel_model, params, logger)
-    model_weights_pixel_after = pixel_model.get_weights()
-    equals = []
-    for weights_before, weights_after in zip(model_weights_pixel_before, model_weights_pixel_after):
-        equals.append(np.array_equal(weights_before, weights_after))
-    assert not all(equals)
-    # Comparison of first layer of both models
-    tile_weights_first_layer = model_weights_tile_after[0]
-    pixel_weights_first_layer = model_weights_pixel_after[0]
-    assert np.array_equal(tile_weights_first_layer, pixel_weights_first_layer)
