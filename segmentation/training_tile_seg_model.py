@@ -48,36 +48,58 @@ def get_prediction(model, x, im_shape, h, w):
 
 
 def train_pixel_tile_seg_model(params):
+    h = params['h']
+    w = params['w']
     path = "/home/sebastian/vaihingen"
     sets = f"{path}/sets.csv"
     sets = pd.read_csv(sets, sep=',')
     sets['image_file'] = path + '/images/' + sets.image.map(str)
     sets['label_file'] = path + '/labels/' + sets.image.map(str)
-    train_data = sets.query("set == 'training_1'")
+    train_data_1 = sets.query("set == 'training_1'")
+    train_data_tile = sets.query("set == 'training_2'").head(20)
+    test_data_tile = sets.query("set == 'training_2'").head(3)
     test_data = sets.query("set == 'test'")
-    image_file_train = train_data.image_file
-    label_file_train = train_data.label_file
+    features_model, tile_model, pixel_model = get_model_definition(
+        img_height=h, img_width=w, in_channels=3, out_channels=5)
+    image_file_train_tile = train_data_tile.image_file
+    label_file_train_tile = train_data_tile.label_file
+    image_file_test_tile = test_data_tile.image_file
+    label_file_test_tile = test_data_tile.label_file
+    x_train_tile = [cv2.imread(f) for f in image_file_train_tile]
+    y_train_tile = [cv2.imread(f) for f in label_file_train_tile]
+    x_test_tile = [cv2.imread(f) for f in image_file_test_tile]
+    y_test_tile = [cv2.imread(f) for f in label_file_test_tile]
+    x_train_tile = [get_image(f, h, w) for f in x_train_tile]
+    y_train_tile = [get_label(f, h, w) for f in y_train_tile]
+    x_test_tile = [get_image(f, h, w) for f in x_test_tile]
+    y_test_tile = [get_label(f, h, w) for f in y_test_tile]
+    x_train_tile = np.concatenate(x_train_tile, axis=0)
+    y_train_tile = np.concatenate(y_train_tile, axis=0)
+    x_test_tile = np.concatenate(x_test_tile, axis=0)
+    y_test_tile = np.concatenate(y_test_tile, axis=0)
+    y_train_tile = y_train_tile.any(axis=(1, 2)).astype(np.float)
+    y_test_tile = y_test_tile.any(axis=(1, 2)).astype(np.float)
+    tile_model = train_model(x_train_tile, y_train_tile, x_test_tile, y_test_tile, tile_model, params, logger)
+    features_model.trainable = False
+    image_file_train_1 = train_data_1.image_file
+    label_file_train_1 = train_data_1.label_file
     image_file_test = test_data.image_file
     label_file_test = test_data.label_file
-    h = params['h']
-    w = params['w']
-    x_train = [cv2.imread(f) for f in image_file_train]
-    y_train = [cv2.imread(f) for f in label_file_train]
+    x_train_1 = [cv2.imread(f) for f in image_file_train_1]
+    y_train_1 = [cv2.imread(f) for f in label_file_train_1]
     x_test = [cv2.imread(f) for f in image_file_test]
     y_test = [cv2.imread(f) for f in label_file_test]
-    x_train = [get_image(f, h, w) for f in x_train]
-    y_train = [get_label(f, h, w) for f in y_train]
+    x_train_1 = [get_image(f, h, w) for f in x_train_1]
+    y_train_1 = [get_label(f, h, w) for f in y_train_1]
     x_test = [get_image(f, h, w) for f in x_test]
     y_test = [get_label(f, h, w) for f in y_test]
-    x_train = np.concatenate(x_train, axis=0)
-    y_train = np.concatenate(y_train, axis=0)
+    x_train_1 = np.concatenate(x_train_1, axis=0)
+    y_train_1 = np.concatenate(y_train_1, axis=0)
     x_test = np.concatenate(x_test, axis=0)
     y_test = np.concatenate(y_test, axis=0)
     # y_debug1 = tiles2images(y, im_shape, h, w)
     # cv2.imwrite("tmp/y_debug1.png", y_debug1)
-    features_model, tile_model, pixel_model = get_model_definition(
-        img_height=h, img_width=w, in_channels=3, out_channels=5)
-    pixel_model = train_model(x_train, y_train, x_test, y_test, pixel_model, params, logger)
+    pixel_model = train_model(x_train_1, y_train_1, x_test, y_test, pixel_model, params, logger)
     for file_name in image_file_test:
         logger.info(f"Getting inference for [{file_name}]")
         x = cv2.imread(file_name)
