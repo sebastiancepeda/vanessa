@@ -2,6 +2,7 @@ import pandas as pd
 from loguru import logger
 import cv2
 import numpy as np
+from tensorflow.keras.losses import CategoricalCrossentropy
 
 from cv.image_processing import image2tiles, get_labels_tiles, predictions2image, tiles2images
 from cv.tf_utils import train_model
@@ -10,16 +11,25 @@ from segmentation.pixel_tile_segmentation_model import get_model_definition
 
 def get_params():
     path = '/home/sebastian/projects/'
-    model_folder = "./tmp/"
-    model_file = f"{model_folder}/model"
     input_folder = "./test_data/"
     output_folder = f'./output/'
+    tile_model_folder = "./tmp/tile_model/"
+    tile_model_file = f"{tile_model_folder}/tile_model.save"
+    pixel_model_folder = "./tmp/pixel_model/"
+    pixel_model_file = f"{pixel_model_folder}/pixel_model.save"
     params = {
-        'model_folder': model_folder,
-        'model_file': model_file,
+        'tile_model_params': {
+            'epochs': 10,
+            'model_folder': tile_model_folder,
+            'model_file': tile_model_file,
+        },
+        'pixel_model_params': {
+            'epochs': 10,
+            'model_folder': pixel_model_folder,
+            'model_file': pixel_model_file,
+        },
         'input_folder': input_folder,
         'output_folder': output_folder,
-        'epochs': 100,
         'h': 200,
         'w': 200
     }
@@ -59,6 +69,7 @@ def train_pixel_tile_seg_model(params):
     train_data_tile = sets.query("set == 'training_2'").head(20)
     test_data_tile = sets.query("set == 'training_2'").head(3)
     test_data = sets.query("set == 'test'")
+    logger.info(f"Creating models")
     features_model, tile_model, pixel_model = get_model_definition(
         img_height=h, img_width=w, in_channels=3, out_channels=5)
     image_file_train_tile = train_data_tile.image_file
@@ -79,7 +90,13 @@ def train_pixel_tile_seg_model(params):
     y_test_tile = np.concatenate(y_test_tile, axis=0)
     y_train_tile = y_train_tile.any(axis=(1, 2)).astype(np.float)
     y_test_tile = y_test_tile.any(axis=(1, 2)).astype(np.float)
-    tile_model = train_model(x_train_tile, y_train_tile, x_test_tile, y_test_tile, tile_model, params, logger)
+    logger.info(f"Training tile model")
+    tile_model.compile(
+        optimizer='adam',
+        loss="mse",
+        metrics=['mae'])
+    tile_model = train_model(
+        x_train_tile, y_train_tile, x_test_tile, y_test_tile, tile_model, params['tile_model_params'], logger)
     features_model.trainable = False
     image_file_train_1 = train_data_1.image_file
     label_file_train_1 = train_data_1.label_file
@@ -99,7 +116,12 @@ def train_pixel_tile_seg_model(params):
     y_test = np.concatenate(y_test, axis=0)
     # y_debug1 = tiles2images(y, im_shape, h, w)
     # cv2.imwrite("tmp/y_debug1.png", y_debug1)
-    pixel_model = train_model(x_train_1, y_train_1, x_test, y_test, pixel_model, params, logger)
+    logger.info(f"Training pixel model")
+    pixel_model.compile(
+        optimizer='adam',
+        loss="mse",
+        metrics=['mae'])
+    pixel_model = train_model(x_train_1, y_train_1, x_test, y_test, pixel_model, params['pixel_model_params'], logger)
     for file_name in image_file_test:
         logger.info(f"Getting inference for [{file_name}]")
         x = cv2.imread(file_name)

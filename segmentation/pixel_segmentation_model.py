@@ -45,7 +45,7 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
         5: 32,
     }
     pre_processed = Lambda(lambda x: x / 255)(inputs)
-    pre_processed = BatchNormalization()(pre_processed)
+    # pre_processed = BatchNormalization()(pre_processed)
     # Down
     c1 = Conv2D(outs[1], **kwargs_conv2d)(pre_processed)
     c1 = Conv2D(outs[1], **kwargs_conv2d)(c1)
@@ -75,6 +75,6 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
     # Model compilation
     model = Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer='adam',
-                  loss=CategoricalCrossentropy(),
-                  metrics=['accuracy'])
+                  loss="mse",
+                  metrics=['mae'])
     return model

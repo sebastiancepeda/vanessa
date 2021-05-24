@@ -29,8 +29,8 @@ def test_training_pixel_model():
     assert y is not None
     y = image2tiles(y, h, w)
     y = get_labels_tiles(y)
-    model_folder = "./tmp/"
-    model_file = f"{model_folder}/model.save"
+    model_folder = "./tmp/pixel_model/"
+    model_file = f"{model_folder}/pixel_model.save"
     params = {
         'epochs': 3,
         'model_folder': model_folder,
@@ -40,5 +40,7 @@ def test_training_pixel_model():
     model_weights_list_before = model.get_weights()
     model = train_model(x, y, x, y, model, params, logger)
     model_weights_list_after = model.get_weights()
+    equals = []
     for weights_before, weights_after in zip(model_weights_list_before, model_weights_list_after):
-        assert not np.array_equal(weights_before, weights_after)
+        equals.append(np.array_equal(weights_before, weights_after))
+    assert not all(equals)
