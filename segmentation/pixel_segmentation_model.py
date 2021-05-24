@@ -38,11 +38,11 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
         'padding': 'same',
     }
     outs = {
-        1: 50,
-        2: 25,
-        3: 15,
-        4: 10,
-        5: 5,
+        1: 32,
+        2: 32,
+        3: 32,
+        4: 32,
+        5: 32,
     }
     # Down
     c1 = Conv2D(outs[1], **kwargs_conv2d)(pre_processing)

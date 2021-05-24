@@ -93,7 +93,7 @@ def get_color_map():
         2: (0, 255, 255),  # Turquoise
         3: (0, 255, 0),  # Green
         4: (255, 255, 0),  # Yellow
-        # 5: (255, 0, 0),  # Red
+        ## 5: (255, 0, 0),  # Red
     }
     return color_map
 
@@ -117,10 +117,12 @@ def get_labels_tiles(tiles: List[np.ndarray]):
     result = np.zeros((tiles_len, tiles[0].shape[0], tiles[0].shape[1], output_channels))
     color_map = get_color_map()
     for i, tile in enumerate(tiles):
+        tile = tile.astype(np.float32)
         for colour_index, colour in color_map.items():
-            r_channel = np.abs(tile[:, :, 0] - colour[2])
-            g_channel = np.abs(tile[:, :, 1] - colour[1])
-            b_channel = np.abs(tile[:, :, 2] - colour[0])
+            r, g, b = colour
+            r_channel = np.abs(tile[:, :, 0] - b)
+            g_channel = np.abs(tile[:, :, 1] - g)
+            b_channel = np.abs(tile[:, :, 2] - r)
             color_distance = r_channel + g_channel + b_channel
             result[i, :, :, colour_index] = color_distance
     result = np.argmin(result, axis=-1)  # Min color distance
@@ -147,6 +149,7 @@ def predictions2image(y_pred: np.ndarray, im_shape: tuple, h: int, w: int):
     np.ndarray:
         Output image
     """
+    y_pred = np.argmax(y_pred, axis=-1)
     y_pred2 = np.zeros((y_pred.shape[0], y_pred.shape[1], y_pred.shape[2], 3))
     color_map = get_color_map()
     for colour_index, colour in color_map.items():
