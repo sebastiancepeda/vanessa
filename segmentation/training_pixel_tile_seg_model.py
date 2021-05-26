@@ -20,7 +20,7 @@ def get_params():
     pixel_model_0_file = f"{pixel_model_0_folder}/pixel_model_0.save"
     pixel_model_1_folder = "./tmp/pixel_model_1/"
     pixel_model_1_file = f"{pixel_model_1_folder}/pixel_model_1.save"
-    epochs = 2  # 20
+    epochs = 100  # 20
     params = {
         'tile_model_params': {
             'epochs': epochs * 2,
@@ -84,10 +84,10 @@ def get_pixel_data(h, w, train_data, test_data):
 
 def get_tile_data(h, w, train_data, test_data):
     x_train, y_train, x_test, y_test = get_pixel_data(h, w, train_data, test_data)
-    # y_train = y_train.any(axis=(1, 2)).astype(np.float64)
-    # y_test = y_test.any(axis=(1, 2)).astype(np.float64)
-    y_train = y_train.mean(axis=(1, 2)).astype(np.float64)
-    y_test = y_test.mean(axis=(1, 2)).astype(np.float64)
+    y_train = y_train.any(axis=(1, 2)).astype(np.float64)
+    y_test = y_test.any(axis=(1, 2)).astype(np.float64)
+    # y_train = y_train.mean(axis=(1, 2)).astype(np.float64)
+    # y_test = y_test.mean(axis=(1, 2)).astype(np.float64)
     return x_train, y_train, x_test, y_test
 
 
@@ -100,8 +100,6 @@ def save_inference(file_name, pixel_model, h, w, prefix):
     f_name = file_name.split('/')[-1].split('.')[0]
     f_name = f"output/{f_name}_{prefix}_pred.png"
     cv2.imwrite(f_name, y_pred)
-    # y_debug = predictions2image(y, im_shape, h, w)
-    # cv2.imwrite("tmp/y_debug.png", y_debug)
 
 
 def train_pixel_tile_seg_model(params):
@@ -155,7 +153,6 @@ def train_pixel_tile_seg_model(params):
     logger.info(f"error_tile: {error_tile}")
     tile_model.trainable = False
     logger.info(f"Training pixel model (transfer learning)")
-    # pixel_model_1.compile(optimizer=Adam(learning_rate=0.0001), loss="mse", metrics=['mae'])
     pixel_model_1.compile(optimizer='adam', loss="mse", metrics=['mae'])
     pixel_model_1 = train_model(x_train_pixel, y_train_pixel, x_test, y_test, pixel_model_1, pixel_1_params, logger)
     pixel_model_1_w_b = pixel_model_1.get_weights().copy()
@@ -167,22 +164,6 @@ def train_pixel_tile_seg_model(params):
     assert np.array_equal(tile_model.get_weights().copy()[0], pixel_model_1.get_weights().copy()[0])
     for file_name in test_data_pixel.image_file:
         save_inference(file_name, pixel_model_1, h, w, 'pixel_model_1_tl')
-    """
-    tile_model.trainable = True
-    logger.info(f"Training pixel model (fine tuning)")
-    pixel_model_1.compile(optimizer='adam', loss="mse", metrics=['mae'])
-    # pixel_model_1.compile(optimizer=Adam(learning_rate=0.0001), loss="mse", metrics=['mae'])
-    pixel_model_1 = train_model(x_train_pixel, y_train_pixel, x_test, y_test, pixel_model_1, pixel_1_params, logger)
-    pixel_model_1_w_b = pixel_model_1.get_weights().copy()
-    logger.info(f"error_pixel_1_train: {np.abs(y_train_pixel - pixel_model_1.predict(x_train_pixel)).mean()}")
-    logger.info(f"error_pixel_1_test: {np.abs(y_test - pixel_model_1.predict(x_test)).mean()}")
-    assert not np.array_equal(pixel_model_1_w_a[0], pixel_model_1_w_b[0])  # Improvements: training of tile model
-    assert not np.array_equal(pixel_model_0_w_b[0], pixel_model_1_w_b[0])  # Different pixel level models
-    # All models based on the same U-net like model
-    assert np.array_equal(tile_model.get_weights().copy()[0], pixel_model_1.get_weights().copy()[0])
-    for file_name in test_data_pixel.image_file:
-        save_inference(file_name, pixel_model_1, h, w, 'pixel_model_1_ft')
-    """
 
 
 if __name__ == "__main__":
