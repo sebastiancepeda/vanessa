@@ -38,8 +38,8 @@ def test_training_pixel_tile_model():
         'model_folder': model_folder,
         'model_file': model_file,
     }
-    features_model, tile_model, pixel_model = get_model_definition(
-        img_height=h, img_width=w, in_channels=3, out_channels=5)
+    tile_model, pixel_model = get_model_definition(
+        img_height=h, img_width=w, in_channels=3, out_channels=5, dim=8)
     # tile_model.trainable = False
     tile_model.compile(
         optimizer='adam',

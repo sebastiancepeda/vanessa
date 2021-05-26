@@ -36,7 +36,7 @@ def test_training_pixel_model():
         'model_folder': model_folder,
         'model_file': model_file,
     }
-    model = get_model_definition(img_height=h, img_width=w, in_channels=3, out_channels=5)
+    model = get_model_definition(img_height=h, img_width=w, in_channels=3, out_channels=5, dim=8)
     model_weights_list_before = model.get_weights()
     model = train_model(x, y, x, y, model, params, logger)
     model_weights_list_after = model.get_weights()

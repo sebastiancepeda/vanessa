@@ -11,7 +11,7 @@ from tensorflow.keras.layers import (
 )
 
 
-def get_model_definition(img_height, img_width, in_channels, out_channels):
+def get_model_definition(img_height, img_width, in_channels, out_channels, dim):
     """
     Defines U-Net like, TensorFlow model
 
@@ -37,15 +37,36 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
         'kernel_initializer': 'he_normal',
         'padding': 'same',
     }
-    dim = 16
     outs = {
         1: dim,
-        2: dim,
-        3: dim,
-        4: dim,
-        5: dim,
+        2: 2 * dim,
+        3: 4 * dim,
+        4: 8 * dim,
+        # 5: dim,
     }
     pre_processed = Lambda(lambda x: x / 255)(inputs)
+    """
+    Tile model
+    """
+    # Down
+    c1 = Conv2D(outs[1], **kwargs_conv2d)(pre_processed)
+    c1 = Conv2D(outs[1], **kwargs_conv2d)(c1)
+    c2 = MaxPooling2D((2, 2))(c1)
+    c2 = Conv2D(outs[2], **kwargs_conv2d)(c2)
+    c2 = Conv2D(outs[2], **kwargs_conv2d)(c2)
+    c3 = MaxPooling2D((2, 2))(c2)
+    c3 = Conv2D(outs[3], **kwargs_conv2d)(c3)
+    c3 = Conv2D(outs[3], **kwargs_conv2d)(c3)
+    c4 = MaxPooling2D((2, 2))(c3)
+    c4 = Conv2D(outs[4], **kwargs_conv2d)(c4)
+    features = Conv2D(outs[4], **kwargs_conv2d)(c4)
+    outputs_tile = GlobalMaxPool2D()(features)
+    outputs_tile = Dense(dim, activation='relu')(outputs_tile)
+    outputs_tile = Dense(dim, activation='relu')(outputs_tile)
+    outputs_tile = Dense(out_channels, activation='sigmoid')(outputs_tile)
+    """
+    Pixel model
+    """
     # Down
     c1 = Conv2D(outs[1], **kwargs_conv2d)(pre_processed)
     c1 = Conv2D(outs[1], **kwargs_conv2d)(c1)
@@ -59,6 +80,7 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
     c4 = Conv2D(outs[4], **kwargs_conv2d)(c4)
     c4 = Conv2D(outs[4], **kwargs_conv2d)(c4)
     # Up
+    c4 = concatenate([features, c4])
     u3 = Conv2DTranspose(outs[3], (2, 2), strides=(2, 2), padding='same')(c4)
     u3 = concatenate([u3, c3])
     u3 = Conv2D(outs[3], **kwargs_conv2d)(u3)
@@ -70,15 +92,8 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
     u1 = Conv2DTranspose(outs[1], (2, 2), strides=(2, 2), padding='same')(u2)
     u1 = concatenate([u1, c1], axis=3)
     u1 = Conv2D(outs[1], **kwargs_conv2d)(u1)
-    features = Conv2D(outs[1], **kwargs_conv2d)(u1)
-    outputs_tile = Conv2D(outs[2], **kwargs_conv2d)(features)
-    outputs_tile = Conv2D(outs[2], **kwargs_conv2d)(outputs_tile)
-    outputs_tile = GlobalAveragePooling2D()(outputs_tile)
-    outputs_tile = Dense(dim, activation='relu')(outputs_tile)
-    outputs_tile = Dense(out_channels, activation='sigmoid')(outputs_tile)
-    outputs_pixel = Conv2D(out_channels, (1, 1), activation='sigmoid')(features)
+    outputs_pixel = Conv2D(out_channels, (1, 1), activation='sigmoid')(u1)
     # Model compilation
-    features_model = Model(inputs=[inputs], outputs=[features])
     tile_model = Model(inputs=[inputs], outputs=[outputs_tile])
     pixel_model = Model(inputs=[inputs], outputs=[outputs_pixel])
-    return features_model, tile_model, pixel_model
+    return tile_model, pixel_model

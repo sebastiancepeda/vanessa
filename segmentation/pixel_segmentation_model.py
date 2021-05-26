@@ -10,7 +10,7 @@ from tensorflow.keras.layers import (
 )
 
 
-def get_model_definition(img_height, img_width, in_channels, out_channels):
+def get_model_definition(img_height, img_width, in_channels, out_channels, dim):
     """
     Defines U-Net like, TensorFlow model
 
@@ -37,11 +37,11 @@ def get_model_definition(img_height, img_width, in_channels, out_channels):
         'padding': 'same',
     }
     outs = {
-        1: 32,
-        2: 32,
-        3: 32,
-        4: 32,
-        5: 32,
+        1: dim,
+        2: dim,
+        3: dim,
+        4: dim,
+        5: dim,
     }
     pre_processed = Lambda(lambda x: x / 255)(inputs)
     # pre_processed = BatchNormalization()(pre_processed)

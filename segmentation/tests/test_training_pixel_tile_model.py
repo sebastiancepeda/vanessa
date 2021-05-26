@@ -31,15 +31,13 @@ def test_training_pixel_tile_model():
     y_pixel = get_labels_tiles(y)
     y_tile = y_pixel.any(axis=(1, 2)).astype(np.float64)
     assert not np.array_equal(y, np.array((1, 1, 0, 0, 1)).astype(np.float64))
-    model_folder = "./tmp/tile_model/"
-    model_file = f"{model_folder}/tile_model.save"
-    params = {
-        'epochs': 3,
-        'model_folder': model_folder,
-        'model_file': model_file,
+    params_tile = {
+        'epochs': 5,
+        'model_folder': "./tmp/tile_model/",
+        'model_file': "./tmp/tile_model/tile_model.save",
     }
-    features_model, tile_model, pixel_model = get_model_definition(
-        img_height=h, img_width=w, in_channels=3, out_channels=5)
+    tile_model, pixel_model = get_model_definition(
+        img_height=h, img_width=w, in_channels=3, out_channels=5, dim=8)
     # tile_model.trainable = False
     tile_model.compile(
         optimizer='adam',
@@ -49,29 +47,37 @@ def test_training_pixel_tile_model():
     logger.info(f"y_tile: {y_tile}")
     y_pred = tile_model.predict(x)
     e1 = np.abs(y_tile - y_pred).mean()
-    logger.info(f"e1: {e1}")
-    tile_model = train_model(x, y_tile, x, y_tile, tile_model, params, logger)
-    features_model.trainable = False
-    features_model.compile(
-        optimizer='adam',
-        loss="mse",
-        metrics=['mae'])
+    tile_model = train_model(x, y_tile, x, y_tile, tile_model, params_tile, logger)
+    tile_model.trainable = False
     pixel_model.compile(
         optimizer='adam',
         loss="mse",
         metrics=['mae'])
     y_pred = tile_model.predict(x)
     e2 = np.abs(y_tile - y_pred).mean()
+    logger.info(f"e1: {e1}")
     logger.info(f"e2: {e2}")
     assert e2 < e1
-    model_weights_tile_after = tile_model.get_weights()
+    model_weights_tile_after = tile_model.get_weights().copy()
     equals = []
     for weights_before, weights_after in zip(model_weights_tile_before, model_weights_tile_after):
         equals.append(np.array_equal(weights_before, weights_after))
     assert not all(equals)
     model_weights_pixel_before = pixel_model.get_weights()
-    pixel_model = train_model(x, y_pixel, x, y_pixel, pixel_model, params, logger)
-    model_weights_pixel_after = pixel_model.get_weights()
+    y_pred_pixel = pixel_model.predict(x)
+    e1 = np.abs(y_pixel - y_pred_pixel).mean()
+    params_pixel = {
+        'epochs': 10,
+        'model_folder': "./tmp/pixel_model/",
+        'model_file': "./tmp/pixel_model/pixel_model.save",
+    }
+    pixel_model = train_model(x, y_pixel, x, y_pixel, pixel_model, params_pixel, logger)
+    y_pred_pixel = pixel_model.predict(x)
+    e2 = np.abs(y_pixel - y_pred_pixel).mean()
+    logger.info(f"e1: {e1}")
+    logger.info(f"e2: {e2}")
+    assert e2 < e1
+    model_weights_pixel_after = pixel_model.get_weights().copy()
     equals = []
     for weights_before, weights_after in zip(model_weights_pixel_before, model_weights_pixel_after):
         equals.append(np.array_equal(weights_before, weights_after))

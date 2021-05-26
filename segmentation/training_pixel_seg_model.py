@@ -65,7 +65,6 @@ def train_pixel_seg_model(params):
     y_train = [cv2.imread(f) for f in label_file_train]
     x_test = [cv2.imread(f) for f in image_file_test]
     y_test = [cv2.imread(f) for f in label_file_test]
-    shapes_test = [im.shape for im in x_test]
     x_train = [get_image(f, h, w) for f in x_train]
     y_train = [get_label(f, h, w) for f in y_train]
     x_test = [get_image(f, h, w) for f in x_test]
