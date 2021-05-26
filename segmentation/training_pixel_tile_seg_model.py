@@ -84,6 +84,7 @@ def get_pixel_data(h, w, train_data, test_data):
 
 def get_tile_data(h, w, train_data, test_data):
     x_train, y_train, x_test, y_test = get_pixel_data(h, w, train_data, test_data)
+    y_train_mean_tile = y_train.mean(axis=(0, 1, 2)).astype(np.float64)
     y_train = y_train.any(axis=(1, 2)).astype(np.float64)
     y_test = y_test.any(axis=(1, 2)).astype(np.float64)
     # y_train = y_train.mean(axis=(1, 2)).astype(np.float64)
