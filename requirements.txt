@@ -3,4 +3,3 @@ pandas==1.2.4
 opencv-python==4.5.1.48
 tensorflow==2.5.0
 loguru==0.5.3
-
